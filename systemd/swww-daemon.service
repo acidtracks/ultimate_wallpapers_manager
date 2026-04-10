@@ -1,0 +1,14 @@
+[Unit]
+Description=swww/awww — daemon d'application de fonds d'écran Wayland
+After=graphical-session.target
+ConditionPathExists=|/usr/bin/swww-daemon
+ConditionPathExists=|/usr/bin/awww-daemon
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'exec $(command -v awww-daemon || command -v swww-daemon)'
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=graphical-session.target

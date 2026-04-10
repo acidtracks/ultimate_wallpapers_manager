@@ -1,0 +1,66 @@
+# ============================================================
+# ultimate_wallpapers_manager — configuration
+# Copier ce fichier vers ~/.config/ultimate_wallpapers_manager/config.toml
+# ============================================================
+
+# ---- Backend d'affichage du fond d'écran ----
+[wallpaper]
+# Backend disponibles : "swww", "hyprpaper", "waypaper"
+backend = "swww"
+
+# Répertoire local où les fonds téléchargés sont stockés
+media_dir = "~/Images/Wallpapers/media"
+
+# Nombre maximum de fonds gardés localement (les plus anciens sont supprimés)
+max_kept_files = 30
+
+# Script de thématisation Material You (laisser vide pour désactiver)
+switchwall_script = "~/.config/quickshell/ii/scripts/colors/switchwall.sh"
+
+# Fichier de config du shell (pour retrouver le dernier fond appliqué)
+shell_config = "~/.config/illogical-impulse/config.json"
+
+
+# ---- Sonarr (séries TV) ----
+[sonarr]
+url = "http://192.168.1.2:8989/sonarr"
+api_key = "VOTRE_CLE_API_SONARR"
+
+
+# ---- Radarr (films) ----
+[radarr]
+url = "http://192.168.1.2:7878/radarr"
+api_key = "VOTRE_CLE_API_RADARR"
+
+
+# ---- Wallhaven ----
+[wallhaven]
+url = "https://wallhaven.cc/api/v1/search"
+# Clé API optionnelle (pour accéder aux contenus +18 si activé sur le compte)
+api_key = ""
+
+
+# ---- Timings du watcher ----
+[timings]
+# Secondes minimum entre deux changements déclenchés par un média/musique
+cooldown_mpris = 10
+
+# Secondes minimum entre deux changements déclenchés par un jeu
+cooldown_game = 30
+
+# Délai de debounce MPRIS : coalesce les events rapides lors d'un changement de piste
+debounce_mpris = 0.5
+
+# Délai de debounce jeu : attend que la fenêtre soit stabilisée
+debounce_game = 5.0
+
+
+# ---- Watcher Hyprland ----
+[watcher]
+# Classes de fenêtres ignorées pour la détection de jeux
+ignore_window_classes = [
+    "code-oss", "code", "dolphin", "kitty", "foot", "alacritty",
+    "firefox", "chromium", "google-chrome", "opera", "brave", "operagx",
+    "thunar", "nautilus", "telegram", "discord", "slack",
+    "gnome-terminal", "konsole", "org.gnome", "gimp",
+]

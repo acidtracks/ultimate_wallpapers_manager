@@ -1,0 +1,14 @@
+[Unit]
+Description=Ultimate Wallpapers Manager — rotation aléatoire
+After=graphical-session.target swww-daemon.service
+Wants=swww-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -m uwm fetch
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:%h/.local/bin
+Environment=WAYLAND_DISPLAY=wayland-1
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=default.target

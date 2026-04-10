@@ -1,0 +1,12 @@
+[Unit]
+Description=Ultimate Wallpapers Manager — timer de rotation (toutes les 30 min)
+Requires=uwm-rotate.service
+
+[Timer]
+OnStartupSec=30s
+OnUnitActiveSec=30min
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

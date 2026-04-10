@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# makepkg
+pkg/
+src/
+*.pkg.tar.*
+
+# Config utilisateur
+config.toml
+
+# Editeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Système
+.DS_Store

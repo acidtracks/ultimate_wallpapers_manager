@@ -1,0 +1,38 @@
+post_install() {
+  echo ""
+  echo "==> ultimate-wallpapers-manager installé."
+  echo ""
+  echo "  1. Copier et éditer la configuration :"
+  echo "       mkdir -p ~/.config/ultimate_wallpapers_manager"
+  echo "       cp /usr/share/doc/ultimate-wallpapers-manager/config.example.toml \\"
+  echo "          ~/.config/ultimate_wallpapers_manager/config.toml"
+  echo ""
+  echo "  2. Activer les services systemd (en tant qu'utilisateur) :"
+  echo "       systemctl --user enable --now swww-daemon.service"
+  echo "       systemctl --user enable --now uwm-watcher.service"
+  echo "       systemctl --user enable --now uwm-rotate.timer"
+  echo ""
+}
+
+post_upgrade() {
+  echo ""
+  echo "==> ultimate-wallpapers-manager mis à jour vers $(pacman -Q ultimate-wallpapers-manager | awk '{print $2}')."
+  echo "    Redémarrez le watcher pour appliquer les changements :"
+  echo "      systemctl --user restart uwm-watcher.service"
+  echo ""
+}
+
+pre_remove() {
+  echo ""
+  echo "==> Arrêt et désactivation des services..."
+  systemctl --user disable --now uwm-watcher.service  2>/dev/null || true
+  systemctl --user disable --now uwm-rotate.timer     2>/dev/null || true
+}
+
+post_remove() {
+  echo ""
+  echo "==> ultimate-wallpapers-manager désinstallé."
+  echo "    La configuration est conservée dans ~/.config/ultimate_wallpapers_manager/"
+  echo "    Supprimez-la manuellement si nécessaire."
+  echo ""
+}
