@@ -12,10 +12,17 @@ _SEARCH_TIERS = [
 ]
 
 
-def search(title: str, url: str, api_key: str = "") -> str | None:
+_TYPE_SUFFIXES: dict[str, str] = {
+    "video": "movie",
+    "game":  "game",
+}
+
+
+def search(title: str, url: str, api_key: str = "", media_type: str | None = None) -> str | None:
+    query = f"{title} {_TYPE_SUFFIXES[media_type]}" if media_type in _TYPE_SUFFIXES else title
     for ratios, min_res in _SEARCH_TIERS:
         params: dict = {
-            "q":          title,
+            "q":          query,
             "sorting":    "relevance",
             "purity":     "100",
             "atleast":    min_res,

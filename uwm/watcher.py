@@ -21,46 +21,55 @@ _IGNORE_CLASSES: set[str]
 
 # ---- État de debounce / cooldown ----
 
-_last_change_time:  float = 0.0
-_last_dedup_key:    str   = ""   # clé unique par événement (titre+artiste ou jeu)
-_pending_search:    str   = ""   # terme envoyé à Wallhaven
-_pending_dedup_key: str   = ""   # clé de déduplication associée
-_pending_since:     float = 0.0
-_pending_cooldown:  float = 0.0
+_last_change_time:   float     = 0.0
+_last_dedup_key:     str       = ""    # clé unique par événement (titre+artiste ou jeu)
+_pending_search:     str       = ""    # terme envoyé à Wallhaven
+_pending_dedup_key:  str       = ""    # clé de déduplication associée
+_pending_media_type: str | None = None  # type de média (music/video/game)
+_pending_since:      float     = 0.0
+_pending_cooldown:   float     = 0.0
 
 
 def _log(msg: str) -> None:
     print(f"[uwm/watcher] {msg}", flush=True)
 
 
-def _trigger_wallpaper(search_term: str, dedup_key: str) -> None:
+def _trigger_wallpaper(search_term: str, dedup_key: str, media_type: str | None = None) -> None:
     global _last_change_time, _last_dedup_key
+    cmd = [sys.executable, "-m", "uwm", "fetch", "--title", search_term]
+    if media_type:
+        cmd += ["--media-type", media_type]
     subprocess.Popen(
-        [sys.executable, "-m", "uwm", "fetch", "--title", search_term],
+        cmd,
         env={**os.environ, "PYTHONPATH": str(_PKG_ROOT)},
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
     _last_change_time = time.time()
     _last_dedup_key   = dedup_key
-    _log(f"Wallpaper déclenché: '{search_term}' (clé: '{dedup_key}')")
+    _log(f"Wallpaper déclenché: '{search_term}' (type: {media_type or '?'}, clé: '{dedup_key}')")
 
 
-def _schedule_change(search_term: str, dedup_key: str, debounce: float, cooldown: float) -> None:
-    global _pending_search, _pending_dedup_key, _pending_since, _pending_cooldown
+def _schedule_change(
+    search_term: str, dedup_key: str,
+    debounce: float, cooldown: float,
+    media_type: str | None = None,
+) -> None:
+    global _pending_search, _pending_dedup_key, _pending_media_type, _pending_since, _pending_cooldown
     if not search_term:
         return
     if dedup_key != _pending_dedup_key:
         _pending_since      = time.time()
         _pending_search     = search_term
         _pending_dedup_key  = dedup_key
-        _log(f"Planifié: '{search_term}' (dans {debounce}s)")
+        _pending_media_type = media_type
+        _log(f"Planifié: '{search_term}' type={media_type or '?'} (dans {debounce}s)")
     _pending_cooldown = cooldown
     _pending_since    = time.time() - (_DEBOUNCE_GAME - debounce)
 
 
 def _apply_pending() -> None:
-    global _pending_search, _pending_dedup_key
+    global _pending_search, _pending_dedup_key, _pending_media_type
     if not _pending_search:
         return
     if time.time() - _pending_since < _DEBOUNCE_GAME:
@@ -70,14 +79,15 @@ def _apply_pending() -> None:
         return
     if time.time() - _last_change_time < _pending_cooldown:
         return
-    _trigger_wallpaper(_pending_search, _pending_dedup_key)
-    _pending_search = ""
+    _trigger_wallpaper(_pending_search, _pending_dedup_key, _pending_media_type)
+    _pending_search     = ""
+    _pending_media_type = None
 
 
 # ---- Parsing MPRIS ----
 
-def _parse_mpris_line(line: str) -> tuple[str, str] | None:
-    """Retourne (search_term, dedup_key) ou None."""
+def _parse_mpris_line(line: str) -> tuple[str, str, str] | None:
+    """Retourne (search_term, dedup_key, media_type) ou None."""
     parts  = line.split("|||")
     title  = parts[0].strip() if len(parts) > 0 else ""
     artist = parts[1].strip() if len(parts) > 1 else ""
@@ -96,10 +106,10 @@ def _parse_mpris_line(line: str) -> tuple[str, str] | None:
         _log(f"MPRIS musique: '{title}' par '{artist}'")
         # search_term = artiste (meilleurs résultats Wallhaven)
         # dedup_key   = artiste + titre (unique par chanson → change à chaque piste)
-        return artist, f"{artist}||{title}"
+        return artist, f"{artist}||{title}", "music"
 
     _log(f"MPRIS vidéo: '{title}'")
-    return title, title
+    return title, title, "video"
 
 
 # ---- Parsing événements Hyprland ----
@@ -209,7 +219,7 @@ def run() -> None:
                         line, hypr_buf = hypr_buf.split("\n", 1)
                         game = _parse_hypr_event(line.strip(), games)
                         if game:
-                            _schedule_change(game, game, _DEBOUNCE_GAME, _COOLDOWN_GAME)
+                            _schedule_change(game, game, _DEBOUNCE_GAME, _COOLDOWN_GAME, "game")
                 except Exception as e:
                     _log(f"Erreur socket: {e}, reconnexion dans 10s...")
                     hypr_sock.close()
@@ -224,7 +234,7 @@ def run() -> None:
                     continue
                 result = _parse_mpris_line(line.strip())
                 if result:
-                    search_term, dedup_key = result
-                    _schedule_change(search_term, dedup_key, _DEBOUNCE_MPRIS, _COOLDOWN_MPRIS)
+                    search_term, dedup_key, media_type = result
+                    _schedule_change(search_term, dedup_key, _DEBOUNCE_MPRIS, _COOLDOWN_MPRIS, media_type)
 
         _apply_pending()

@@ -94,7 +94,7 @@ def _pick_random_media(cfg: dict) -> dict | None:
     return random.choice(pool) if pool else None
 
 
-def fetch_for_title(title: str) -> None:
+def fetch_for_title(title: str, media_type: str | None = None) -> None:
     """Cherche et applique un wallpaper pour un titre précis."""
     cfg       = config.load()
     media_dir = Path(cfg["wallpaper"]["media_dir"]).expanduser()
@@ -106,10 +106,10 @@ def fetch_for_title(title: str) -> None:
     wh_key    = cfg["wallhaven"].get("api_key", "")
 
     media_dir.mkdir(parents=True, exist_ok=True)
-    _log(f"Mode ciblé: '{title}'")
+    _log(f"Mode ciblé: '{title}' (type: {media_type or 'inconnu'})")
 
     if wallhaven.is_reachable():
-        wall_url = wallhaven.search(title, wh_url, wh_key)
+        wall_url = wallhaven.search(title, wh_url, wh_key, media_type=media_type)
         if wall_url:
             _log(f"Wallhaven trouvé: {wall_url}")
             _download_and_apply(wall_url, safe_filename(title), media_dir, max_kept, backend, switchwall)
