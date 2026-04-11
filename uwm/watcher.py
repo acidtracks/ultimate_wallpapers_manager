@@ -194,47 +194,58 @@ def run() -> None:
     hypr_buf = ""
 
     while True:
-        # Reconnexion Hyprland si socket perdu
-        if hypr_sock is None:
-            time.sleep(10)
-            hypr_sock = _connect_hyprland()
-            if not hypr_sock:
-                continue
-            hypr_buf = ""
+        try:
+            # Reconnexion Hyprland si socket perdu
+            if hypr_sock is None:
+                time.sleep(10)
+                hypr_sock = _connect_hyprland()
+                if not hypr_sock:
+                    continue
+                hypr_buf = ""
 
-        timeout = max(0.05, (_pending_since + _DEBOUNCE_GAME - time.time()) if _pending_search else 1.0)
-        rlist, _, _ = select.select([hypr_sock, playerctl_proc.stdout], [], [], timeout)
+            timeout = max(0.05, (_pending_since + _DEBOUNCE_GAME - time.time()) if _pending_search else 1.0)
+            rlist, _, _ = select.select([hypr_sock, playerctl_proc.stdout], [], [], timeout)
 
-        for readable in rlist:
-            if readable is hypr_sock:
-                try:
-                    data = hypr_sock.recv(4096).decode("utf-8", errors="ignore")
-                    if not data:
-                        _log("Socket Hyprland fermé, reconnexion dans 10s...")
+            for readable in rlist:
+                if readable is hypr_sock:
+                    try:
+                        data = hypr_sock.recv(4096).decode("utf-8", errors="ignore")
+                        if not data:
+                            _log("Socket Hyprland fermé, reconnexion dans 10s...")
+                            hypr_sock.close()
+                            hypr_sock = None
+                            break
+                        hypr_buf += data
+                        while "\n" in hypr_buf:
+                            line, hypr_buf = hypr_buf.split("\n", 1)
+                            game = _parse_hypr_event(line.strip(), games)
+                            if game:
+                                _schedule_change(game, game, _DEBOUNCE_GAME, _COOLDOWN_GAME, "game")
+                    except Exception as e:
+                        _log(f"Erreur socket: {e}, reconnexion dans 10s...")
                         hypr_sock.close()
                         hypr_sock = None
                         break
-                    hypr_buf += data
-                    while "\n" in hypr_buf:
-                        line, hypr_buf = hypr_buf.split("\n", 1)
-                        game = _parse_hypr_event(line.strip(), games)
-                        if game:
-                            _schedule_change(game, game, _DEBOUNCE_GAME, _COOLDOWN_GAME, "game")
-                except Exception as e:
-                    _log(f"Erreur socket: {e}, reconnexion dans 10s...")
+
+                elif readable is playerctl_proc.stdout:
+                    line = playerctl_proc.stdout.readline()
+                    if not line:
+                        _log("playerctl terminé, redémarrage...")
+                        playerctl_proc = _start_playerctl()
+                        continue
+                    result = _parse_mpris_line(line.strip())
+                    if result:
+                        search_term, dedup_key, media_type = result
+                        _schedule_change(search_term, dedup_key, _DEBOUNCE_MPRIS, _COOLDOWN_MPRIS, media_type)
+
+            _apply_pending()
+
+        except Exception as e:
+            _log(f"Erreur inattendue dans la boucle principale: {e}, reprise dans 5s...")
+            time.sleep(5)
+            if hypr_sock:
+                try:
                     hypr_sock.close()
-                    hypr_sock = None
-                    break
-
-            elif readable is playerctl_proc.stdout:
-                line = playerctl_proc.stdout.readline()
-                if not line:
-                    _log("playerctl terminé, redémarrage...")
-                    playerctl_proc = _start_playerctl()
-                    continue
-                result = _parse_mpris_line(line.strip())
-                if result:
-                    search_term, dedup_key, media_type = result
-                    _schedule_change(search_term, dedup_key, _DEBOUNCE_MPRIS, _COOLDOWN_MPRIS, media_type)
-
-        _apply_pending()
+                except Exception:
+                    pass
+                hypr_sock = None

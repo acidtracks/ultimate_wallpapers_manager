@@ -9,6 +9,8 @@ ExecStart=/usr/bin/python3 -m uwm fetch
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:%h/.local/bin
 Environment=WAYLAND_DISPLAY=wayland-1
 Environment=DISPLAY=:0
+Restart=always
+RestartSec=5s
 
 [Install]
 WantedBy=default.target

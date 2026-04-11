@@ -1,6 +1,6 @@
 [Unit]
 Description=Ultimate Wallpapers Manager — watcher (MPRIS + Hyprland)
-After=graphical-session.target swww-daemon.service
+After=default.target swww-daemon.service
 Wants=swww-daemon.service
 
 [Service]

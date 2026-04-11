@@ -1,4 +1,5 @@
 import json
+import random
 import urllib.parse
 import urllib.request
 
@@ -42,13 +43,13 @@ def search(title: str, url: str, api_key: str = "", media_type: str | None = Non
                 data = json.load(r)
             results = data.get("data", [])
             if results:
-                best = max(results, key=lambda x: x.get("dimension_x", 0) * x.get("dimension_y", 0))
+                pick = random.choice(results)
                 print(
-                    f"[uwm/wallhaven] {best.get('dimension_x')}x{best.get('dimension_y')} "
-                    f"(ratio: {ratios or 'any'}, min: {min_res})",
+                    f"[uwm/wallhaven] {pick.get('dimension_x')}x{pick.get('dimension_y')} "
+                    f"(ratio: {ratios or 'any'}, min: {min_res}, {len(results)} résultats)",
                     flush=True,
                 )
-                return best.get("path")
+                return pick.get("path")
         except Exception as e:
             print(f"[uwm/wallhaven] Erreur: {e}", flush=True)
 
